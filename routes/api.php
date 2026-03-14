@@ -71,7 +71,7 @@ Route::prefix('user-roles')->group(function () {
 });
 
 // Role-Permission Management
-Route::prefix('roles/{role}/permissions')->group(function () {
+Route::prefix('rolespermissions')->group(function () {
     Route::get('/', [RolePermissionController::class, 'index']);
     Route::post('/', [RolePermissionController::class, 'store']);     // attach
     Route::put('/', [RolePermissionController::class, 'update']);     // update
