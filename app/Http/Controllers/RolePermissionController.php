@@ -28,7 +28,7 @@ class RolePermissionController extends Controller
     {
         try {
             // Make sure role_id is included for the action validation
-            $request->merge(['role_id' => $role->id]);
+            // $request->merge(['role_id' => $role->id]);
 
             return $action->execute($request);
         } catch (ValidationException $e) {
@@ -50,7 +50,6 @@ class RolePermissionController extends Controller
     public function update(Request $request, Role $role, UpdateRolePermissions $action)
     {
         try {
-            $request->merge(['role_id' => $role->id]);
 
             return $action->execute($request);
         } catch (ValidationException $e) {
@@ -69,24 +68,5 @@ class RolePermissionController extends Controller
     }
 
     // DELETE (detach permission(s))
-    public function destroy(Request $request, Role $role, DeleteRolePermission $action)
-    {
-        try {
-            $request->merge(['role_id' => $role->id]);
-
-            return $action->execute($request);
-        } catch (ValidationException $e) {
-            return response()->json([
-                'data' => null,
-                'message' => 'Validation failed.',
-                'errors' => $e->errors(),
-            ], 422);
-        } catch (Throwable $e) {
-            return response()->json([
-                'data' => null,
-                'message' => 'Server error.',
-                'error' => $e->getMessage(),
-            ], 500);
-        }
-    }
+    public function destroy(Request $request) {}
 }

@@ -16,41 +16,29 @@ class UpdateRolePermissions
         ]);
 
         $roleId = $validated['role_id'];
-        $successCount = 0;
-        $skipped = [];
-        $rolePermissions = [];
+        $permissionIds = $validated['permission_id'];
 
-        foreach ($validated['permission_id'] as $pid) {
-            $exists = RolePermission::where('role_id', $roleId)
-                ->where('permission_id', $pid)
-                ->exists();
-            if ($exists) {
-                $skipped[] = $pid;
-                continue;
-            }
+        // Remove old permissions
+        RolePermission::where('role_id', $roleId)->delete();
 
-            $rolePermissions[] = RolePermission::create([
+        // Insert new permissions
+        $data = [];
+
+        foreach ($permissionIds as $pid) {
+            $data[] = [
                 'role_id' => $roleId,
                 'permission_id' => $pid,
-            ]);
-
-            $successCount++;
+                'created_at' => now(),
+                'updated_at' => now(),
+            ];
         }
 
-        if ($successCount === 0) {
-            return response()->json([
-                'data' => null,
-                'message' => 'No permissions were updated (all already assigned).',
-                'skipped_permissions' => $skipped,
-            ], 409);
-        }
+        RolePermission::insert($data);
 
         return response()->json([
             'data' => [
                 'role_id' => $roleId,
-                'permissions' => $rolePermissions,
-                'updated_count' => $successCount,
-                'skipped_permissions' => $skipped,
+                'permissions' => $permissionIds,
             ],
             'message' => 'Role permissions updated successfully.',
         ], 200);

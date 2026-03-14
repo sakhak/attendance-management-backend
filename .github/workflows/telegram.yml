@@ -13,7 +13,7 @@ jobs:
           token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           to: ${{ secrets.TELEGRAM_CHAT_ID }}
           message: |
-            ✅ GitHub Push Alert(Backend)
+            ✅ GitHub Push Alert (Backend)
             Repo: ${{ github.repository }}
             Branch: ${{ github.ref_name }}
             Author: ${{ github.actor }}
