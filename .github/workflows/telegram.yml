@@ -61,15 +61,8 @@ jobs:
           format: markdown
           disable_web_page_preview: true
           message: |
-            ${{ steps.env_label.outputs.label }} 🔔 **New Push Detected**
-
-            ━━━━━━━━━━━━━━━━━━━━
-
-            📌 **Repository:** [`${{ github.repository }}`](https://github.com/${{ github.repository }})
-            🌿 **Branch:** `${{ github.ref_name }}`
-            🔑 **Commit:** [`${{ steps.commit_details.outputs.short_hash }}`](https://github.com/${{ github.repository }}/commit/${{ github.sha }})
-
-            👤 **Author:** [@${{ github.actor }}](https://github.com/${{ github.actor }})
-            📁 **Files Changed:** `${{ steps.commit_details.outputs.file_count }}`
-
-            💬 **Message:**
+            ✅ GitHub Push Alert(Backend)
+            Repo: ${{ github.repository }}
+            Branch: ${{ github.ref_name }}
+            Author: ${{ github.actor }}
+            Commit: ${{ github.event.head_commit.message }}
