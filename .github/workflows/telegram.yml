@@ -1,20 +1,75 @@
-name: Telegram Alert on Push
+name: 📬 Telegram Push Alerts
 
 on:
   push:
+    branches:
+      - main
+      - staging
+      - develop
 
 jobs:
   notify:
+    name: 📨 ${{ github.ref_name }} Push Alert
     runs-on: ubuntu-latest
+
     steps:
-      - name: Send Telegram message
+      - name: 🏷️ Set Environment Label
+        id: env_label
+        run: |
+          case "${{ github.ref_name }}" in
+            main)
+              echo "label=🟢 PRODUCTION" >> $GITHUB_OUTPUT
+              echo "color=#00ff00" >> $GITHUB_OUTPUT
+              ;;
+            staging)
+              echo "label=🟡 STAGING" >> $GITHUB_OUTPUT
+              echo "color=#ffff00" >> $GITHUB_OUTPUT
+              ;;
+            develop)
+              echo "label=🔵 DEVELOPMENT" >> $GITHUB_OUTPUT
+              echo "color=#0000ff" >> $GITHUB_OUTPUT
+              ;;
+            *)
+              echo "label=⚪ ${{ github.ref_name }}" >> $GITHUB_OUTPUT
+              echo "color=#ffffff" >> $GITHUB_OUTPUT
+              ;;
+          esac
+
+      - name: 📝 Prepare Commit Details
+        id: commit_details
+        run: |
+          COMMIT_MSG="${{ github.event.head_commit.message }}"
+          COMMIT_HASH="${{ github.sha }}"
+          SHORT_HASH="${COMMIT_HASH:0:7}"
+
+          # Format commit message (first line only for preview)
+          COMMIT_PREVIEW="${COMMIT_MSG%%$'\n'*}"
+
+          echo "short_hash=$SHORT_HASH" >> $GITHUB_OUTPUT
+          echo "commit_preview=$COMMIT_PREVIEW" >> $GITHUB_OUTPUT
+
+          # Count files changed
+          FILES_CHANGED="${{ github.event.head_commit.modified }}"
+          FILE_COUNT=$(echo "$FILES_CHANGED" | wc -w)
+          echo "file_count=$FILE_COUNT" >> $GITHUB_OUTPUT
+
+      - name: 🤖 Send Telegram Alert
         uses: appleboy/telegram-action@v1.0.0
         with:
           token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           to: ${{ secrets.TELEGRAM_CHAT_ID }}
+          format: markdown
+          disable_web_page_preview: true
           message: |
-            ✅ GitHub Push Alert (Backend)
-            Repo: ${{ github.repository }}
-            Branch: ${{ github.ref_name }}
-            Author: ${{ github.actor }}
-            Commit: ${{ github.event.head_commit.message }}
+            ${{ steps.env_label.outputs.label }} 🔔 **New Push Detected**
+
+            ━━━━━━━━━━━━━━━━━━━━
+
+            📌 **Repository:** [`${{ github.repository }}`](https://github.com/${{ github.repository }})
+            🌿 **Branch:** `${{ github.ref_name }}`
+            🔑 **Commit:** [`${{ steps.commit_details.outputs.short_hash }}`](https://github.com/${{ github.repository }}/commit/${{ github.sha }})
+
+            👤 **Author:** [@${{ github.actor }}](https://github.com/${{ github.actor }})
+            📁 **Files Changed:** `${{ steps.commit_details.outputs.file_count }}`
+
+            💬 **Message:**
