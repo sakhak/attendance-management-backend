@@ -1,4 +1,4 @@
-name: Telegram Push Alert
+name: Telegram Alert on Push
 
 on:
   push:
@@ -6,21 +6,17 @@ on:
 jobs:
   notify:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Send Telegram notification
+      - name: Send Telegram message
         uses: appleboy/telegram-action@v1.0.0
         with:
           token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           to: ${{ secrets.TELEGRAM_CHAT_ID }}
-          format: html
           message: |
             ━━━━━━━━━━━━━━━━━━━━
-             <b>Backend Push Alert</b>
+             <b>✅Backend Push Successful</b>
             ━━━━━━━━━━━━━━━━━━━━
-            <b>📦 Repository:</b> ${{ github.repository }}
-            <b>🌿 Branch:</b> ${{ github.ref_name }}
-            <b>👤 Author:</b> ${{ github.actor }}
-            <b>💬 Commit:</b> <i>${{ github.event.head_commit.message }}</i>
-            <b>✅ Status:</b> Push Successful
-            ━━━━━━━━━━━━━━━━━━━━
+            Repo: ${{ github.repository }}
+            Branch: ${{ github.ref_name }}
+            Author: ${{ github.actor }}
+            Commit: ${{ github.event.head_commit.message }}
