@@ -15,8 +15,13 @@ class AttendanceRecord extends Model
         'class_session_id',
         'student_id',
         'recorded_by',
+        'attendance_date',
         'status',
         'comment'
+    ];
+
+    protected $casts = [
+        'attendance_date' => 'date',
     ];
     public function classSession(): BelongsTo
     {
@@ -27,6 +32,12 @@ class AttendanceRecord extends Model
         return $this->belongsTo(Student::class, 'student_id');
     }
     public function recorder(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'recorded_by');
+    }
+
+    // Some controllers expect recordedBy()
+    public function recordedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'recorded_by');
     }

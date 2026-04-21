@@ -193,19 +193,19 @@ Route::prefix('report-export')->group(function () {
 
 
 // Attendance Record
-Route::prefix('attendance-records')->group(function () {
+Route::middleware(['auth:sanctum', 'role:admin,teacher'])->prefix('attendance-records')->group(function () {
     // Filter attendance records
     Route::get('/filter', [AttendanceRecordController::class, 'filter']);
     // List + show
     Route::get('/', [AttendanceRecordController::class, 'index']);
     Route::get('/{id}', [AttendanceRecordController::class, 'show']);
 
-    // create (many students for one class_session_id)
+    // create (many students for one class_session_id + one date)
     Route::post('/', [AttendanceRecordController::class, 'store']);
 
-    // update (many students for one class_session_id)
+    // update (many students for one class_session_id + one date)
     Route::put('/', [AttendanceRecordController::class, 'update']);
 
-    // delete (many students for one class_session_id)
+    // delete (many students for one class_session_id + one date)
     Route::delete('/', [AttendanceRecordController::class, 'destroy']);
 });

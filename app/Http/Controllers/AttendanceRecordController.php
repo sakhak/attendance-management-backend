@@ -10,6 +10,7 @@ use App\Models\AttendanceRecord;
 use App\Models\ClassSession;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class AttendanceRecordController extends Controller
 {
@@ -35,6 +36,10 @@ class AttendanceRecordController extends Controller
                 $query->where('status', $request->status); // present|absent|permission
             }
 
+            if ($request->filled('attendance_date')) {
+                $query->whereDate('attendance_date', $request->attendance_date);
+            }
+
             // return data
             $records = $query->latest()->paginate(15);
 
@@ -56,7 +61,7 @@ class AttendanceRecordController extends Controller
             'date'       => ['required', 'date'],
             'term_id'    => ['required', 'integer'],
             'class_id'   => ['required', 'integer'],
-            'teacher_id' => ['required', 'integer'],
+            'teacher_id' => ['nullable', 'integer'],
 
             // Optional (for time range filtering)
             'start_time' => ['nullable', 'date_format:H:i:s'],
@@ -77,23 +82,25 @@ class AttendanceRecordController extends Controller
      */
     public function store(Request $request, CreateAttendanceRecord $action)
     {
-        $validated = $request->validate([
-            'class_session_id'     => ['required', 'integer', 'exists:class_sessions,id'],
-            'records'              => ['required', 'array', 'min:1'],
-            'records.*.student_id' => ['required', 'integer', 'exists:students,id'],
-            'records.*.status'     => ['nullable', Rule::in(['present', 'absent', 'permission'])],
-            'records.*.comment'    => ['nullable', 'string'],
-        ]);
+        try {
+            $validated = $request->validate([
+                'class_session_id'     => ['required', 'integer', 'exists:class_sessions,id'],
+                'date'                 => ['required', 'date', 'before_or_equal:today'],
+                'records'              => ['required', 'array', 'min:1'],
+                'records.*.student_id' => ['required', 'integer', 'exists:students,id'],
+                'records.*.status'     => ['required', Rule::in(['present', 'absent', 'permission'])],
+                'records.*.comment'    => ['nullable', 'string'],
+            ]);
 
-        $result = $action->execute($validated);
+            $result = $action->execute($validated);
 
-        if (!$result['success']) {
+            return response()->json($result, 201);
+        } catch (ValidationException $e) {
             return response()->json([
-                'message' => $result['message']
-            ], 500);
+                'message' => 'Validation failed',
+                'errors' => $e->errors(),
+            ], 422);
         }
-
-        return response()->json($result, 201);
     }
 
     /**
@@ -135,23 +142,25 @@ class AttendanceRecordController extends Controller
      */
     public function update(Request $request, UpdateAttendanceRecord $action)
     {
-        $validated = $request->validate([
-            'class_session_id'     => ['required', 'integer', 'exists:class_sessions,id'],
-            'records'              => ['required', 'array', 'min:1'],
-            'records.*.student_id' => ['required', 'integer', 'exists:students,id'],
-            'records.*.status'     => ['nullable', Rule::in(['present', 'absent', 'permission'])],
-            'records.*.comment'    => ['nullable', 'string'],
-        ]);
+        try {
+            $validated = $request->validate([
+                'class_session_id'     => ['required', 'integer', 'exists:class_sessions,id'],
+                'date'                 => ['required', 'date', 'before_or_equal:today'],
+                'records'              => ['required', 'array', 'min:1'],
+                'records.*.student_id' => ['required', 'integer', 'exists:students,id'],
+                'records.*.status'     => ['required', Rule::in(['present', 'absent', 'permission'])],
+                'records.*.comment'    => ['nullable', 'string'],
+            ]);
 
-        $result = $action->execute($validated);
+            $result = $action->execute($validated);
 
-        if (!$result['success']) {
+            return response()->json($result, 200);
+        } catch (ValidationException $e) {
             return response()->json([
-                'message' => $result['message']
-            ], 500);
+                'message' => 'Validation failed',
+                'errors' => $e->errors(),
+            ], 422);
         }
-
-        return response()->json($result, 200);
     }
 
     /**
@@ -161,6 +170,7 @@ class AttendanceRecordController extends Controller
     {
         $validated = $request->validate([
             'class_session_id' => ['required', 'integer', 'exists:class_sessions,id'],
+            'date'             => ['required', 'date', 'before_or_equal:today'],
             'student_ids'      => ['required', 'array', 'min:1'],
             'student_ids.*'    => ['integer', 'exists:students,id'],
         ]);

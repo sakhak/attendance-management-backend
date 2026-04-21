@@ -3,6 +3,7 @@
 namespace App\Actions\AttendanceRecord;
 
 use App\Models\AttendanceRecord;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
 class DeleteAttendanceRecord
@@ -20,8 +21,11 @@ class DeleteAttendanceRecord
         try {
             DB::beginTransaction();
 
+            $attendanceDate = Carbon::parse($data['date'])->toDateString();
+
             $deleted = AttendanceRecord::query()
                 ->where('class_session_id', $data['class_session_id'])
+                ->whereDate('attendance_date', $attendanceDate)
                 ->whereIn('student_id', $data['student_ids'])
                 ->delete();
 

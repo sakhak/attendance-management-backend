@@ -38,22 +38,18 @@ class GenerateAttendanceReportData
                 $p->where('class_id', $validated['class_id'])
                   ->where('term_id', $validated['term_id']);
             })
-            ->whereBetween('created_at', [
-                $validated['date_from'] . ' 00:00:00',
-                $validated['date_to'] . ' 23:59:59'
+            ->whereBetween('attendance_date', [
+                $validated['date_from'],
+                $validated['date_to']
             ])
             ->select('student_id', 'status', DB::raw('COUNT(*) as count'))
             ->groupBy('student_id', 'status')
             ->get()
             ->groupBy('student_id');
             
-        $studentIds = $summery->keys()->toArray();
-
-        if (empty($studentIds)) {
-            throw new \Exception("No attendance records found for this class and term.");
-        }
-
-        $students = Student::whereIn('id', $studentIds)
+        $students = Student::whereHas('enrollments', function($q) use ($validated) {
+                $q->where('class_id', $validated['class_id']);
+            })
             ->with(['user' => fn($p) => $p->select('users.id', 'users.name')])
             ->get([
                 'students.id',
@@ -70,6 +66,9 @@ class GenerateAttendanceReportData
             $present = (int) ($counts->firstWhere('status', 'present')->count ?? 0);
             $permission = (int) ($counts->firstWhere('status', 'permission')->count ?? 0);
             $absent = (int) ($counts->firstWhere('status', 'absent')->count ?? 0);
+            
+            $total = $present + $permission + $absent;
+            $percentage = $total > 0 ? round(($present / $total) * 100, 2) : 0;
 
             $reportRows[] = [
                 'student_code' => $student->student_code ?? '-',
@@ -78,12 +77,18 @@ class GenerateAttendanceReportData
                 'present' => $present,
                 'permission' => $permission,
                 'absent' => $absent,
+                'percentage' => $percentage . '%'
             ];
 
             $grandTotals['present'] += $present;
             $grandTotals['permission'] += $permission;
             $grandTotals['absent'] += $absent;
         }
+
+        $grandTotalAttendance = $grandTotals['present'] + $grandTotals['permission'] + $grandTotals['absent'];
+        $classPercentage = $grandTotalAttendance > 0 
+            ? round(($grandTotals['present'] / $grandTotalAttendance) * 100, 2) 
+            : 0;
 
         return [
             'filter' => $filter,
@@ -92,6 +97,7 @@ class GenerateAttendanceReportData
             'class_name' => $class->name ?? '-',
             'rows' => $reportRows,
             'totals' => $grandTotals,
+            'class_percentage' => $classPercentage . '%'
         ];
     }
 }

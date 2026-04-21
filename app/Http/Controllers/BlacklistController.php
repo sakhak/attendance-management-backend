@@ -16,7 +16,7 @@ class BlacklistController extends Controller
      */
     public function index()
     {
-        $blacklists = Blacklist::all();
+        $blacklists = Blacklist::with(['student.user', 'term'])->get();
 
         return response()->json([
             'list' => [

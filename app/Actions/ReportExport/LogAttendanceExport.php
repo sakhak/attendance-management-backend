@@ -11,6 +11,7 @@ class LogAttendanceExport
     {
         ReportExports::create([
             'user_id'      => $user->id,
+            'class_id'     => $filters['class_id'] ?? null,
             'report_type'  => 'attendance',
             'file_type'    => $type,
             'status'       => 'completed',
