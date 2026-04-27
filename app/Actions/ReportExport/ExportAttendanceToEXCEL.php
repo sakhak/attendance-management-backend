@@ -6,7 +6,7 @@ use App\Exports\AttendanceReportExport;
 use Illuminate\Support\Facades\Storage;
 use Maatwebsite\Excel\Facades\Excel;
 
-class ExportAttendanceToExcel
+class ExportAttendanceToEXCEL
 {
     public function execute(array $reportData): array
     {

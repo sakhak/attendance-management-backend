@@ -30,4 +30,10 @@ class AttendanceRecord extends Model
     {
         return $this->belongsTo(User::class, 'recorded_by');
     }
+
+    // Alias used by controller: ->with(['recordedBy'])
+    public function recordedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'recorded_by');
+    }
 }

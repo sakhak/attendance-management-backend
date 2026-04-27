@@ -2,7 +2,7 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Models\Student;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -25,9 +25,9 @@ class User extends Authenticatable
     {
         static::created(function ($user) {
             Student::create([
-                'user_id' => $user->id,
+                'user_id'      => $user->id,
                 'student_code' => 'STU-' . str_pad($user->id, 5, '0', STR_PAD_LEFT),
-                'status' => StudentStatus::ACTIVE,
+                'status'       => 'active',  // string value; Student model casts to StudentStatus enum
             ]);
         });
     }

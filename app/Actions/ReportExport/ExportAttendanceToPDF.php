@@ -5,9 +5,6 @@ namespace App\Actions\ReportExport;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Storage;
 
-use function Safe\file_put_contents;
-use function Symfony\Component\Clock\now;
-
 class ExportAttendanceToPDF
 {
     /**
@@ -15,7 +12,7 @@ class ExportAttendanceToPDF
      */
     public function execute(array $reportData)
     {
-        $fileName = 'attendance_report_' . now()->format('Y_m_d_His') .'pdf';
+        $fileName = 'attendance_report_' . now()->format('Y_m_d_His') . '.pdf';
         $path = 'exports/'.$fileName;
 
         Storage::disk('public')->makeDirectory('exports');
@@ -24,7 +21,7 @@ class ExportAttendanceToPDF
         $pdf->setPaper('A4' , 'portrait');
         $fullPath = storage_path('app/public/'.$path);
 
-        file_put_contents($fullPath , $pdf->output());
+        \file_put_contents($fullPath, $pdf->output());
         return [
             'path'     => $path,
             'filename' => $fileName,

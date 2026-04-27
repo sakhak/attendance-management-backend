@@ -13,6 +13,7 @@ class ReportExports extends Model
 
     protected $fillable = [
         'user_id',
+        'class_id',
         'report_type',
         'file_type',
         'status',

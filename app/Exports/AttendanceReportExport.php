@@ -40,7 +40,7 @@ class AttendanceReportExport implements FromArray, ShouldAutoSize, WithTitle
             $rows[] = [
                 $row['student_code'],
                 $row['name'],
-                $row['name'],
+                $row['class_name'],
                 $row['present'],
                 $row['absent'],
                 $row['permission'],

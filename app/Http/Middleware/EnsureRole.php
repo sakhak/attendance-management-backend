@@ -13,17 +13,27 @@ class EnsureRole
         $user = $request->user('sanctum');
 
         if (!$user) {
-            abort(403, 'Unauthorized.');
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthenticated. Please log in first.',
+            ], 401);
         }
 
-        // super_admin bypass
+        // super_admin bypass — can do everything
         if ($user->roles()->where('key', 'super_admin')->exists()) {
             return $next($request);
         }
 
-        // check allowed roles
+        // Check if user has one of the required roles
         if (!$user->roles()->whereIn('key', $roles)->exists()) {
-            abort(403, 'Unauthorized.');
+            $userRoles = $user->roles()->pluck('name')->join(', ') ?: 'none';
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Access denied. You do not have permission to perform this action.',
+                'required_roles' => $roles,
+                'your_role'      => $userRoles,
+            ], 403);
         }
 
         return $next($request);

@@ -68,5 +68,22 @@ class RolePermissionController extends Controller
     }
 
     // DELETE (detach permission(s))
-    public function destroy(Request $request) {}
+    public function destroy(Request $request, DeleteRolePermission $action)
+    {
+        try {
+            return $action->execute($request);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'data'    => null,
+                'message' => 'Validation failed.',
+                'errors'  => $e->errors(),
+            ], 422);
+        } catch (Throwable $e) {
+            return response()->json([
+                'data'    => null,
+                'message' => 'Server error.',
+                'error'   => $e->getMessage(),
+            ], 500);
+        }
+    }
 }
