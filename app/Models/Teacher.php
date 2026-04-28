@@ -30,7 +30,7 @@ class Teacher extends Model
             'class_id'
         );
     }
-    public function classSections(): HasMany
+    public function classSessions(): HasMany
     {
         return $this->hasMany(ClassSession::class, 'teacher_id');
     }

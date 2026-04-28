@@ -13,6 +13,14 @@ class CreateEnrollment
 {
     public function create(Request $request): Enrollment
     {
+        // Allow user_id as a fallback if student_id is not provided
+        if (!$request->has('student_id') && $request->has('user_id')) {
+            $student = Student::where('user_id', $request->user_id)->first();
+            if ($student) {
+                $request->merge(['student_id' => $student->id]);
+            }
+        }
+
         $validated = $request->validate([
             'class_id'    => ['required', 'integer', 'exists:classes,id'],
             'student_id'  => ['required', 'integer', 'exists:students,id'],
@@ -21,7 +29,7 @@ class CreateEnrollment
 
         $student = Student::findOrFail($validated['student_id']);
 
-        if ($student->status !== \App\Models\StudentStatus::ACTIVE) {
+        if ($student->status !== StudentStatus::ACTIVE) {
             throw ValidationException::withMessages([
                 'student_id' => ['Cannot enroll an inactive or suspended student.'],
             ]);

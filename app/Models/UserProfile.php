@@ -21,7 +21,7 @@ class UserProfile extends Model
         "image"
     ];
 
-    public function user():BelongsTo
+    public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }

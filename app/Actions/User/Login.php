@@ -17,7 +17,7 @@ class Login
             ]);
         }
 
-        $user = User::with('userProfile')->where('email', $data['email'])->first();
+        $user = User::with(['userProfile', 'roles'])->where('email', $data['email'])->first();
 
         // Check credentials
         if (!$user || !Hash::check($data['password'], $user->password)) {

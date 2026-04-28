@@ -53,6 +53,9 @@ class DatabaseSeeder extends Seeder
 
             // Reports
             ReportExportSeeder::class,
+
+            // Settings
+            SettingsSeeder::class,
         ]);
     }
 }

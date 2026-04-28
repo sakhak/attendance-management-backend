@@ -3,6 +3,8 @@
 namespace App\Actions\AttendanceRecord;
 
 use App\Models\ClassSession;
+use App\Models\Subject;
+use App\Support\AttendanceRoster;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -46,7 +48,6 @@ class FilterAttendanceRecord
                     'attendance' => function ($q) use ($attendanceDate) {
                         $q->whereDate('attendance_date', $attendanceDate);
                     },
-                    'class.students',
                 ])
                 ->where('day_of_week', $dayName)
                 ->where('term_id', $data['term_id'])
@@ -64,23 +65,37 @@ class FilterAttendanceRecord
             $session = $query->first();
 
             if (!$session) {
-                DB::commit();
-                return [
-                    'success' => false,
-                    'code' => 404,
-                    'message' => "No class session found. (date day = {$dayName})",
-                    'data' => null,
-                ];
+                $session = ClassSession::create([
+                    'class_id' => $data['class_id'],
+                    'term_id' => $data['term_id'],
+                    'teacher_id' => $teacherId,
+                    'subject_id' => $this->defaultSubjectId(),
+                    'day_of_week' => $dayName,
+                    'start_time' => $data['start_time'] ?? '00:00:00',
+                    'end_time' => $data['end_time'] ?? '00:00:00',
+                    'status' => 'scheduled',
+                    'created_on' => now(),
+                ]);
+
+                $session->load([
+                    'attendance' => function ($q) use ($attendanceDate) {
+                        $q->whereDate('attendance_date', $attendanceDate);
+                    },
+                ]);
             }
 
-            $students = $session->class->students->map(function ($student) use ($session) {
+            $enrollments = AttendanceRoster::eligibleEnrollments((int) $data['class_id']);
+            $students = $enrollments->map(function ($enrollment) use ($session) {
+                $student = $enrollment->student;
                 $record = $session->attendance->firstWhere('student_id', $student->id);
 
                 return [
                     'student_id' => $student->id,
-                    'name' => trim(($student->last_name ?? '') . ', ' . ($student->first_name ?? '')),
+                    'student_code' => $student->student_code,
+                    'roll_no' => $student->student_code,
+                    'name' => $this->studentName($student),
                     'status' => $record->status ?? null,
-                    'comment' => $record->comment ?? null,
+                    'comment' => $record->comment ?? '',
                 ];
             })->values();
 
@@ -92,10 +107,6 @@ class FilterAttendanceRecord
                 'message' => 'Filter success.',
                 'data' => [
                     'class_session_id' => $session->id,
-                    'attendance_date' => $attendanceDate,
-                    'day_of_week' => $dayName,
-                    'start_time' => $session->start_time,
-                    'end_time' => $session->end_time,
                     'students' => $students,
                 ],
             ];
@@ -110,5 +121,22 @@ class FilterAttendanceRecord
             ];
         }
     }
-}
 
+    private function defaultSubjectId(): int
+    {
+        return Subject::query()->value('id')
+            ?? Subject::create(['name' => 'General Attendance', 'code' => 'ATTENDANCE'])->id;
+    }
+
+    private function studentName($student): string
+    {
+        $userName = trim($student->user?->name ?? '');
+        $profileName = trim(($student->user?->userProfile?->first_name ?? '') . ' ' . ($student->user?->userProfile?->last_name ?? ''));
+
+        if ($userName !== '') {
+            return $userName;
+        }
+
+        return $profileName !== '' ? $profileName : 'Unknown Student';
+    }
+}

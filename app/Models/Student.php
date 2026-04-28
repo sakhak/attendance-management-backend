@@ -8,15 +8,6 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
-// enum for student status
-
-enum StudentStatus: string
-{
-    case ACTIVE = 'active';
-    case INACTIVE = 'inactive';
-    case SUSPENDED = 'suspended';
-}
-
 class Student extends Model
 {
     use HasFactory;

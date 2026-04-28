@@ -18,11 +18,14 @@ class Classes extends Model
         'start_date',
         'end_date',
         'room_number',
+        'schedule_days',
+        'settings_teacher_name',
     ];
 
     protected $casts = [
         'start_date' => 'date',
         'end_date' => 'date',
+        'schedule_days' => 'array',
     ];
 
     public function gradeLevel(): BelongsTo

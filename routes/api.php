@@ -14,6 +14,7 @@ use App\Http\Controllers\GradeLevelSubjectController;
 use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\RolePermissionController;
+use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\StudentController;
 use App\Http\Controllers\TeacherController;
 use App\Http\Controllers\TermController;
@@ -29,10 +30,21 @@ Route::prefix('auth')->group(function () {
 
     Route::middleware('auth:sanctum')->group(function () {
         Route::get('index', [AuthController::class, 'index']);
+        Route::get('users', [AuthController::class, 'index']);
         Route::put('update', [AuthController::class, 'update']);
         Route::get('show/{id}', [AuthController::class, 'show']);
         Route::post('logout', [AuthController::class, 'logout']);
     });
+});
+
+Route::middleware('auth:sanctum')->get('/all-users', [AuthController::class, 'index']);
+
+Route::middleware('auth:sanctum')->prefix('users')->group(function () {
+    Route::get('/', [AuthController::class, 'index']);
+    Route::post('/create', [AuthController::class, 'store']);
+    Route::get('/{id}', [AuthController::class, 'show']);
+    Route::put('/update/{id}', [AuthController::class, 'update']);
+    Route::delete('/{id}', [AuthController::class, 'destroy']);
 });
 
 Route::middleware('auth:sanctum')->group(function () {
@@ -42,6 +54,24 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/update', [UserProfileController::class, 'update']);
         Route::delete('/delete', [UserProfileController::class, 'destroy']);
     });
+});
+
+Route::middleware(['auth:sanctum', 'role:admin'])->prefix('settings')->group(function () {
+    Route::get('/school', [SettingsController::class, 'showSchool']);
+    Route::put('/school', [SettingsController::class, 'updateSchool']);
+
+    Route::get('/classes', [SettingsController::class, 'listClasses']);
+    Route::post('/classes', [SettingsController::class, 'storeClass']);
+    Route::put('/classes/{class}', [SettingsController::class, 'updateClass']);
+    Route::delete('/classes/{class}', [SettingsController::class, 'destroyClass']);
+
+    Route::get('/attendance-rules', [SettingsController::class, 'showAttendanceRules']);
+    Route::put('/attendance-rules', [SettingsController::class, 'updateAttendanceRules']);
+});
+
+Route::middleware(['auth:sanctum', 'role:admin'])->group(function () {
+    Route::get('/blacklist', [BlacklistController::class, 'report']);
+    Route::get('/blacklist/export', [BlacklistController::class, 'export']);
 });
 
 Route::prefix('permissions')->group(function () {
@@ -131,8 +161,9 @@ Route::prefix('students')->group(function () {
     Route::delete('/{student}', [StudentController::class, 'destroy']);
 });
 // Teachers (CRUD + link to users)
-Route::middleware(['role:admin'])->prefix('teachers')->group(function () {
+Route::middleware(['auth:sanctum', 'role:admin,teacher'])->prefix('teachers')->group(function () {
     Route::get('/', [TeacherController::class, 'index']);
+    Route::post('/create', [TeacherController::class, 'store']);
     Route::get('/{teacher}', [TeacherController::class, 'show']);
     Route::put('/update/{teacher}', [TeacherController::class, 'update']);
     // Route::delete('/{teacher}', [TeacherController::class, 'destroy']);
@@ -150,22 +181,22 @@ Route::prefix('enrollments')->group(function () {
 
 
 // Academic year Crud
-Route::prefix('academic-year')->group(function () {
+Route::prefix('academic-years')->group(function () {
     Route::get('/', [AcademicYearController::class, 'index']);
-    Route::post('/', [AcademicYearController::class, 'store']);
+    Route::post('/create', [AcademicYearController::class, 'store']);
     Route::get('/{id}', [AcademicYearController::class, 'show']);
-    Route::put('/{academicYear}', [AcademicYearController::class, 'update']);
+    Route::put('/update/{academicYear}', [AcademicYearController::class, 'update']);
     Route::delete('/{academicYear}', [AcademicYearController::class, 'destroy']);
     Route::delete('/', [AcademicYearController::class, 'destroyMulti']);
     Route::delete('/all', [AcademicYearController::class, 'destroyAll']);
 });
 
 // Terms Crud
-Route::prefix('term')->group(function () {
+Route::prefix('terms')->group(function () {
     Route::get('/', [TermController::class, 'index']);
-    Route::post('/', [TermController::class, 'store']);
+    Route::post('/create', [TermController::class, 'store']);
     Route::get('/{id}', [TermController::class, 'show']);
-    Route::put('/{term}', [TermController::class, 'update']);
+    Route::put('/update/{term}', [TermController::class, 'update']);
     Route::delete('/{idTerm}', [TermController::class, 'destroy']);
     Route::delete('/', [TermController::class, 'destroyMulti']);
     Route::delete('/all', [TermController::class, 'destroyAll']);
@@ -173,11 +204,11 @@ Route::prefix('term')->group(function () {
 
 
 // Class Session Crud
-Route::prefix('class-session')->group(function () {
+Route::prefix('class-sessions')->group(function () {
     Route::get('/', [ClassSessionController::class, 'index']);
-    Route::post('/', [ClassSessionController::class, 'store']);
+    Route::post('/create', [ClassSessionController::class, 'store']);
     Route::get('/{id}', [ClassSessionController::class, 'show']);
-    Route::put('/{classSession}', [ClassSessionController::class, 'update']);
+    Route::put('/update/{classSession}', [ClassSessionController::class, 'update']);
     Route::delete('/{classSession}', [ClassSessionController::class, 'destroy']);
     Route::delete('/', [ClassSessionController::class, 'destroyMulti']);
     Route::delete('/all', [ClassSessionController::class, 'destroyAll']);
@@ -194,6 +225,8 @@ Route::prefix('report-export')->group(function () {
 
 // Attendance Record
 Route::middleware(['auth:sanctum', 'role:admin,teacher'])->prefix('attendance-records')->group(function () {
+    // Report attendance records
+    Route::get('/report', [AttendanceRecordController::class, 'report']);
     // Filter attendance records
     Route::get('/filter', [AttendanceRecordController::class, 'filter']);
     // List + show

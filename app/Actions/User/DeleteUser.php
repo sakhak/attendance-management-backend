@@ -2,12 +2,14 @@
 
 namespace App\Actions\User;
 
+use App\Models\User;
+
 class DeleteUser
 {
-    public function execute()
+    public function execute(int $id)
     {
-        return response()->json([
-            'message' => "Hello everyone"
-        ]);
+        $user = User::findOrFail($id);
+        $user->delete();
+        return true;
     }
 }

@@ -40,9 +40,27 @@ class TeacherController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(Request $request, \App\Actions\Teacher\CreateTeacher $action)
     {
-        //
+        try {
+            $teacher = $action->execute($request);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Teacher created successfully',
+                'data' => $teacher
+            ], 201);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 500);
+        }
     }
 
     /**

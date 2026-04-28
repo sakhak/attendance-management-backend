@@ -14,9 +14,17 @@ class ClassesController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $classes = Classes::with('students')->get();
+        $query = Classes::query();
+
+        if ($request->filled('term_id')) {
+            $query->whereHas('classSessions', function ($q) use ($request) {
+                $q->where('term_id', $request->term_id);
+            });
+        }
+
+        $classes = $query->with('students')->get();
 
         return response()->json([
             'list' => [

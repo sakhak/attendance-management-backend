@@ -7,7 +7,6 @@ use App\Actions\AttendanceRecord\DeleteAttendanceRecord;
 use App\Actions\AttendanceRecord\FilterAttendanceRecord;
 use App\Actions\AttendanceRecord\UpdateAttendanceRecord;
 use App\Models\AttendanceRecord;
-use App\Models\ClassSession;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -59,9 +58,9 @@ class AttendanceRecordController extends Controller
     {
         $validated = $request->validate([
             'date'       => ['required', 'date'],
-            'term_id'    => ['required', 'integer'],
-            'class_id'   => ['required', 'integer'],
-            'teacher_id' => ['nullable', 'integer'],
+            'term_id'    => ['required', 'integer', 'exists:terms,id'],
+            'class_id'   => ['required', 'integer', 'exists:classes,id'],
+            'teacher_id' => ['nullable', 'integer', 'exists:teachers,id'],
 
             // Optional (for time range filtering)
             'start_time' => ['nullable', 'date_format:H:i:s'],
@@ -71,10 +70,51 @@ class AttendanceRecordController extends Controller
         $result = $action->execute($validated);
 
         return response()->json([
-            'success' => $result['success'],
-            'message' => $result['message'],
-            'data'    => $result['data'],
+            'data' => $result['data'],
         ], $result['code']);
+    }
+
+    public function report(Request $request)
+    {
+        try {
+            $validated = $request->validate([
+                'start_date' => ['required', 'date'],
+                'end_date'   => ['required', 'date', 'after_or_equal:start_date'],
+                'term_id'    => ['required', 'integer'],
+                'class_id'   => ['required', 'integer'],
+                'teacher_id' => ['nullable', 'integer'],
+            ]);
+
+            $query = AttendanceRecord::with(['student.user', 'classSession'])
+                ->whereHas('classSession', function ($q) use ($validated) {
+                    $q->where('term_id', $validated['term_id'])
+                      ->where('class_id', $validated['class_id']);
+                    
+                    if (!empty($validated['teacher_id'])) {
+                        $q->where('teacher_id', $validated['teacher_id']);
+                    }
+                })
+                ->whereBetween('attendance_date', [$validated['start_date'], $validated['end_date']]);
+
+            $records = $query->get();
+
+            if ($records->isEmpty()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Attendance record not found.'
+                ], 404);
+            }
+
+            return response()->json([
+                'success' => true,
+                'data' => $records
+            ], 200);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 500);
+        }
     }
 
     /**

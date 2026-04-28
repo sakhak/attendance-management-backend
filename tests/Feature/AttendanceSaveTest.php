@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\AcademicYear;
+use App\Models\AttendanceRecord;
 use App\Models\Classes;
 use App\Models\ClassSession;
 use App\Models\Enrollment;
@@ -35,6 +36,12 @@ class AttendanceSaveTest extends TestCase
         $adminRole = Role::create([
             'name' => 'Admin',
             'key' => 'admin',
+            'status' => 'active',
+        ]);
+
+        $studentRole = Role::create([
+            'name' => 'Student',
+            'key' => 'student',
             'status' => 'active',
         ]);
 
@@ -103,7 +110,7 @@ class AttendanceSaveTest extends TestCase
         ]);
 
         $studentUser1 = User::factory()->create(['status' => 'active']);
-        $studentUser1->roles()->attach($adminRole->id); // role doesn't matter for roster, keep it simple
+        $studentUser1->roles()->attach($studentRole->id);
         $student1 = Student::create([
             'user_id' => $studentUser1->id,
             'student_code' => 'S-001',
@@ -111,9 +118,18 @@ class AttendanceSaveTest extends TestCase
         ]);
 
         $studentUser2 = User::factory()->create(['status' => 'active']);
+        $studentUser2->roles()->attach($studentRole->id);
         $student2 = Student::create([
             'user_id' => $studentUser2->id,
             'student_code' => 'S-002',
+            'status' => 'active',
+        ]);
+
+        $enrolledAdminUser = User::factory()->create(['status' => 'active']);
+        $enrolledAdminUser->roles()->attach($adminRole->id);
+        $enrolledAdminStudent = Student::create([
+            'user_id' => $enrolledAdminUser->id,
+            'student_code' => 'S-ADMIN',
             'status' => 'active',
         ]);
 
@@ -131,13 +147,21 @@ class AttendanceSaveTest extends TestCase
             'enrolled_on' => '2025-09-01',
         ]);
 
+        Enrollment::create([
+            'class_id' => $class->id,
+            'student_id' => $enrolledAdminStudent->id,
+            'grade_level_id' => $grade->id,
+            'enrolled_on' => '2025-09-01',
+        ]);
+
         return compact(
             'teacherUser',
             'otherTeacher',
             'otherTeacherUser',
             'session',
             'student1',
-            'student2'
+            'student2',
+            'enrolledAdminStudent'
         );
     }
 
@@ -225,5 +249,58 @@ class AttendanceSaveTest extends TestCase
         $res = $this->postJson('/api/attendance-records', $payload);
         $res->assertStatus(403);
     }
-}
 
+    public function test_filter_returns_only_active_enrolled_students_with_existing_attendance(): void
+    {
+        $ctx = $this->setUpAttendanceContext();
+
+        Sanctum::actingAs($ctx['teacherUser']);
+
+        AttendanceRecord::create([
+            'class_session_id' => $ctx['session']->id,
+            'student_id' => $ctx['student2']->id,
+            'recorded_by' => $ctx['teacherUser']->id,
+            'attendance_date' => '2026-04-20',
+            'status' => 'absent',
+            'comment' => 'Sick',
+        ]);
+
+        $res = $this->getJson('/api/attendance-records/filter?date=2026-04-20&term_id=' . $ctx['session']->term_id . '&class_id=' . $ctx['session']->class_id . '&teacher_id=' . $ctx['session']->teacher_id);
+
+        $res->assertOk()
+            ->assertJsonPath('data.class_session_id', $ctx['session']->id)
+            ->assertJsonCount(2, 'data.students')
+            ->assertJsonPath('data.students.0.student_id', $ctx['student1']->id)
+            ->assertJsonPath('data.students.0.student_code', 'S-001')
+            ->assertJsonPath('data.students.0.roll_no', 'S-001')
+            ->assertJsonPath('data.students.0.status', null)
+            ->assertJsonPath('data.students.0.comment', '')
+            ->assertJsonPath('data.students.1.student_id', $ctx['student2']->id)
+            ->assertJsonPath('data.students.1.status', 'absent')
+            ->assertJsonPath('data.students.1.comment', 'Sick');
+    }
+
+    public function test_filter_roster_excludes_admin_and_teacher_users(): void
+    {
+        $ctx = $this->setUpAttendanceContext();
+
+        Sanctum::actingAs($ctx['teacherUser']);
+
+        $res = $this->getJson('/api/attendance-records/filter?date=2026-04-20&term_id=' . $ctx['session']->term_id . '&class_id=' . $ctx['session']->class_id . '&teacher_id=' . $ctx['session']->teacher_id);
+
+        $res->assertOk();
+
+        $rows = collect($res->json('data.students'));
+        $studentIds = $rows->pluck('student_id');
+
+        $this->assertTrue($studentIds->contains($ctx['student1']->id));
+        $this->assertTrue($studentIds->contains($ctx['student2']->id));
+        $this->assertFalse($studentIds->contains($ctx['enrolledAdminStudent']->id));
+        $this->assertFalse($studentIds->contains($ctx['teacherUser']->student->id));
+        $this->assertFalse($studentIds->contains($ctx['otherTeacherUser']->student->id));
+
+        foreach ($studentIds as $studentId) {
+            $this->assertDatabaseHas('students', ['id' => $studentId]);
+        }
+    }
+}

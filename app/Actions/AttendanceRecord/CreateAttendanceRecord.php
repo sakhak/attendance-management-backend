@@ -5,7 +5,7 @@ namespace App\Actions\AttendanceRecord;
 use App\Models\AttendanceRecord;
 use App\Models\Blacklist;
 use App\Models\ClassSession;
-use App\Models\Enrollment;
+use App\Support\AttendanceRoster;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
@@ -71,10 +71,7 @@ class CreateAttendanceRecord
             }
 
             // No partial save: must submit exactly all enrolled students (no missing/extra, no duplicates).
-            $enrolledStudentIds = Enrollment::query()
-                ->where('class_id', $session->class_id)
-                ->pluck('student_id')
-                ->values();
+            $enrolledStudentIds = AttendanceRoster::eligibleStudentIds((int) $session->class_id);
 
             if ($enrolledStudentIds->isEmpty()) {
                 throw ValidationException::withMessages([

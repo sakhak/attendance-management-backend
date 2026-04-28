@@ -36,7 +36,7 @@ class CreateUser
             ]);
 
             // Find student role
-            $studentRole = Role::where('name', 'student')->first();
+            $studentRole = Role::where('key', 'student')->first();
 
             if (!$studentRole) {
                 throw new \Exception('Default role "student" not found.');
